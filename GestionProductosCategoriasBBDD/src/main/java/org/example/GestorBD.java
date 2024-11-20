@@ -1,68 +1,83 @@
 package org.example;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.List;
+import java.util.Scanner;
 
 public class GestorBD {
-    private Connection conexion;
-    private Statement statement;
-    private PreparedStatement prepareStatement;
+    private ConexionBD conexionBD = new ConexionBD();
 
-
-
-    public void crearTablas(){
-        String tablaCategoria = "CREATE TABLE IF NOT EXISTS Categoria (" +
-                "id INT PRIMARY KEY, " +
-                "nombre VARCHAR(50) NOT NULL" +
+    public void crearTablas() {
+        String tableCategoria = "CREATE TABLE IF NOT EXISTS Categoria (" +
+                "id INT AUTO_INCREMENT PRIMARY KEY, " +
+                "nombre VARCHAR(50) NOT NULL UNIQUE" +
                 ")";
 
-        String tablaProducto = "CREATE TABLE IF NOT EXISTS Producto (" +
-                "id INT PRIMARY KEY, " +
+        String tableProducto = "CREATE TABLE IF NOT EXISTS Producto (" +
+                "id INT AUTO_INCREMENT PRIMARY KEY, " +
                 "nombre VARCHAR(100) NOT NULL, " +
                 "precio DECIMAL(10, 2) NOT NULL, " +
                 "categoria_id INT, FOREIGN KEY (categoria_id) REFERENCES Categoria(id)" +
                 ")";
-        try {
-             conexion = new ConexionBD().conectar();
-             statement = conexion.createStatement();
-             statement.execute(tablaCategoria);
-             statement.execute(tablaProducto);
-             System.out.println("Tablas creadas exitosamente.");
 
+        try (Connection conexion = conexionBD.conectar();
+             Statement statement = conexion.createStatement()) {
 
-        }catch (Exception e){
-            System.out.println("Error al crear las tablas" + e.getMessage());
-        }
-    }
-    public void insertarEnCategoria(Categoria categoria) {
-        String sql = "INSERT INTO Categoria (nombre) VALUES (?)";
-        try {
-            conexion = new ConexionBD().conectar();
-            prepareStatement  = conexion.prepareStatement(sql);
-            prepareStatement.setString(1, categoria.getNombre());
-            prepareStatement.executeUpdate();
-
-            System.out.println("Categoría insertada exitosamente.");
-
+            statement.execute(tableCategoria);
+            statement.execute(tableProducto);
+            System.out.println("Tablas creadas correctamente.");
         } catch (SQLException e) {
-            System.out.println("Error al insertar categoría: " + e.getMessage());
+            System.out.println("Error al crear las tablas: " + e.getMessage());
         }
     }
-    public void insertarEnProducto(Producto producto) {
-        String sql = "INSERT INTO Producto (nombre) VALUES (?)";
-        try {
-            conexion = new ConexionBD().conectar();
-            prepareStatement  = conexion.prepareStatement(sql);
-            prepareStatement.setString(1, producto.getNombre());
-            prepareStatement.executeUpdate();
 
-            System.out.println("Categoría insertada exitosamente.");
+    public void insertarCategoria() {
+        try (Connection conexion = conexionBD.conectar()) {
 
+            CategoriaDAO categoriaDAO = new CategoriaDAO(conexion);
+            Scanner sc = new Scanner(System.in);
+
+            System.out.print("Introduce el nombre de la nueva categoría: ");
+            String nombreCategoria = sc.nextLine();
+
+            if (categoriaDAO.existeCategoria(nombreCategoria)) {
+                System.out.println("La categoría ya existe en la base de datos.");
+            } else {
+                categoriaDAO.insertarCategoria(new Categoria(nombreCategoria));
+                System.out.println("Categoría insertada exitosamente.");
+            }
         } catch (SQLException e) {
             System.out.println("Error al insertar categoría: " + e.getMessage());
         }
     }
 
+    public void insertarProducto() {
+        try (Connection conexion = conexionBD.conectar()) {
+
+            ProductoDAO productoDAO = new ProductoDAO(conexion);
+            CategoriaDAO categoriaDAO = new CategoriaDAO(conexion);
+            Scanner sc = new Scanner(System.in);
+
+            System.out.print("Introduce el nombre del producto: ");
+            String nombreProducto = sc.nextLine();
+
+            System.out.print("Introduce el precio del producto: ");
+            double precioProducto = sc.nextDouble();
+
+            List<Categoria> categorias = categoriaDAO.obtenerCategorias();
+            System.out.println("Categorías disponibles:");
+            categorias.forEach(c -> System.out.printf("ID:" + c.getId() + ", Nombre:" +  c.getNombre()));
+
+            System.out.print("Introduce el ID de la categoría: ");
+            int categoriaId = sc.nextInt();
+
+            productoDAO.insertarProducto(new Producto(nombreProducto, precioProducto, categoriaId));
+            System.out.println("Producto insertado exitosamente.");
+
+        } catch (SQLException e) {
+            System.out.println("Error al insertar producto: " + e.getMessage());
+        }
+    }
 }
