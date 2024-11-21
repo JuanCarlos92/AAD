@@ -1,4 +1,4 @@
-package org.example;
+package org.example.dto;
 
 public class Producto {
     private int id;
@@ -45,11 +45,11 @@ public class Producto {
         this.precio = precio;
     }
 
-    public int getcategoriaId() {
+    public int getCategoriaId() {
         return categoriaId;
     }
 
-    public void setcategoriaId(int categoriaId) {
+    public void setCategoriaId(int categoriaId) {
         this.categoriaId = categoriaId;
     }
 
