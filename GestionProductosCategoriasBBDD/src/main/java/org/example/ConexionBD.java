@@ -4,19 +4,26 @@ import java.sql.*;
 
 public class ConexionBD {
     private Connection conexion;
-    private static final String URL = "jdbc:mysql://localhost/productosbd";
+    private static final String URL = "jdbc:mysql://localhost/productobd";
     private static final String USER = "root";
-    private static final String PASSWORD = "";
+    private static final String PASSWORD = "root";
 
-    ConexionBD() {}
+    public ConexionBD() {}
 
-    //Metodo para conectar con la BD
-    public static Connection getConexion() throws SQLException, ClassNotFoundException {
+    // Metodo para conectar a la BD
+    public void conectar() throws SQLException, ClassNotFoundException {
         // Cargar el driver de MySQL
         Class.forName("com.mysql.cj.jdbc.Driver");
-        // Devuelve la conexión (url, usuario, pwd)
-        return DriverManager.getConnection(URL, USER, PASSWORD);
+        // Establecer la conexión
+        this.conexion = DriverManager.getConnection(URL, USER, PASSWORD);
+        System.out.println("Conexión establecida correctamente.");
     }
+
+    // Metodo para obtener la conexión
+    public Connection getConexion() {
+        return this.conexion;
+    }
+
 }
 
 

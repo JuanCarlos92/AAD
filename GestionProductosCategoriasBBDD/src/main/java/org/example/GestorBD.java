@@ -2,25 +2,28 @@ package org.example;
 
 import org.example.dao.CategoriaDAO;
 import org.example.dao.ProductoDAO;
+import org.example.dao.SelectDAO;
 import org.example.dto.Categoria;
 import org.example.dto.Producto;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Scanner;
 
+
 public class GestorBD {
     private Connection conexion;
+    private SelectDAO selectDAO;
 
-    public GestorBD() {
-        try {
-            // Crear la conexión
-            this.conexion = ConexionBD.getConexion();
-        } catch (SQLException | ClassNotFoundException e) {
-            System.out.println("Error al establecer la conexión: " + e.getMessage());
-        }
+
+    // Constructor que recibe la conexión
+    public GestorBD(Connection conexion) {
+
+        this.conexion = conexion;
+        this.selectDAO = new SelectDAO(conexion);
     }
 
     // Metodo para crear las tablas en la base de datos
@@ -38,10 +41,7 @@ public class GestorBD {
                 "FOREIGN KEY (categoria_id) REFERENCES Categoria(id)" +
                 ")";
 
-        Statement statement = null;
-
-        try {
-            statement = conexion.createStatement();
+        try (Statement statement = conexion.createStatement()) {
 
             statement.execute(tableCategoria);
             statement.execute(tableProducto);
@@ -49,77 +49,99 @@ public class GestorBD {
             System.out.println("Tablas creadas correctamente.");
         } catch (SQLException e) {
             System.out.println("Error al crear las tablas: " + e.getMessage());
-        }finally {
-            DesconexionBD.cerrarStatement(statement);
+
         }
     }
 
-    // Metodo para insertar una nueva categoría
-    public void insertarCategoria() {
-            try {
-                CategoriaDAO categoriaDAO = new CategoriaDAO(conexion);
-                Scanner sc = new Scanner(System.in);
+    // Inserta una nueva categoría
+    public void insertarCategoria(Scanner sc) throws SQLException {
+        System.out.print("Introduce el nombre de la categoría: ");
+        String nombre = sc.nextLine();
 
-                System.out.print("Introduce el nombre de la nueva categoría: ");
-                String nombreCategoria = sc.nextLine();
-
-                if (categoriaDAO.existeCategoria(nombreCategoria)) {
-                    System.out.println("La categoría ya existe en la base de datos.");
-                } else {
-                    categoriaDAO.insertarCategoria(new Categoria(nombreCategoria));
-                    System.out.println("Categoría insertada exitosamente.");
-                }
-            }catch (Exception e){
-                System.out.println("Error al insertar la categoria en la bd" + e.getMessage());
-            }
+        Categoria categoria = new Categoria(nombre);
+        CategoriaDAO categoriaDAO = new CategoriaDAO(conexion);
+        categoriaDAO.insertarCategoria(categoria);
     }
 
-    // Metodo para insertar un nuevo producto
-    public void insertarProducto() {
-        try {
+    // Inserta un nuevo producto
+    public void insertarProducto(Scanner sc) throws SQLException {
+        System.out.print("Introduce el nombre del producto: ");
+        String nombre = sc.nextLine();
+        System.out.print("Introduce el precio del producto: ");
+        double precio = sc.nextDouble();
+        System.out.print("Introduce el ID de la categoría: ");
+        int categoriaId = sc.nextInt();
+        sc.nextLine();  // Limpiar buffer de entrada
 
-            ProductoDAO productoDAO = new ProductoDAO(conexion);
-            CategoriaDAO categoriaDAO = new CategoriaDAO(conexion);
-            Scanner sc = new Scanner(System.in);
+        Producto producto = new Producto(nombre, precio, categoriaId);
+        ProductoDAO productoDAO = new ProductoDAO(conexion);
+        productoDAO.insertarProducto(producto);
+    }
 
-            System.out.print("Introduce el nombre del producto: ");
-            String nombreProducto = sc.nextLine();
+    // Obtener productos join categoria
+    public void obtenerProductos() throws SQLException {
+        selectDAO.selectProductoJoinCategoria();
 
-            System.out.print("Introduce el precio del producto: ");
-            double precioProducto = sc.nextDouble();
+    }
 
-            // Limpiar el buffer del Scanner
-            sc.nextLine();
-
-            List<Categoria> categorias = categoriaDAO.obtenerCategorias();
-            if (categorias.isEmpty()) {
-                System.out.println("No hay categorías disponibles. Por favor, inserta una categoría primero.");
-                return;
-            }
-
-            System.out.println("Categorías disponibles:");
-            categorias.forEach(c -> System.out.printf("ID: %d, Nombre: %s%n", c.getId(), c.getNombre()));
-
-            System.out.print("Introduce el ID de la categoría: ");
-            int categoriaId = sc.nextInt();
-
-            // Validar que la categoría existe
-            boolean categoriaExiste = categorias.stream().anyMatch(c -> c.getId() == categoriaId);
-            if (!categoriaExiste) {
-                System.out.println("La categoría seleccionada no existe.");
-                return;
-            }
-
-            productoDAO.insertarProducto(new Producto(nombreProducto, precioProducto, categoriaId));
-            System.out.println("Producto insertado exitosamente.");
-
-        } catch (Exception e) {
-            System.out.println("Error al insertar producto: " + e.getMessage());
+    // Obtener categorías
+    public void obtenerCategorias() throws SQLException {
+        List<Categoria> categorias = selectDAO.obtenerCategorias();
+        for (Categoria categoria : categorias) {
+            System.out.println("ID: " + categoria.getId() + " | Nombre: " + categoria.getNombre());
         }
     }
 
-    //Metodo que llama a cesconexion desde la clase gestorBD
-    public void cerrarConexion(){
-        DesconexionBD.desconectar(conexion);
+    // Obtener productos join categoria con WHERE
+    public void obtenerProductosConWhere() throws SQLException {
+        selectDAO.selectProductoJoinCategoriaMayorCien();
+    }
+
+    // Eliminar producto
+    public void eliminarProducto(Scanner sc) throws SQLException {
+        selectDAO.obtenerNombresProductos();
+
+        System.out.print("Introduce el nombre del producto a eliminar: ");
+        String nombreProducto = sc.nextLine();
+
+        String sql = "DELETE FROM Producto WHERE nombre = ?";
+        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+            ps.setString(1, nombreProducto);
+
+            //Ejecutar la consulta y obtener el numero de filas afectadas
+            int filasAfectadas = ps.executeUpdate();
+
+            if (filasAfectadas > 0) {
+                System.out.println("Producto " + nombreProducto + " eliminado correctamente.");
+            } else {
+                System.out.println("No se encontró el producto con el nombre " + nombreProducto);
+            }
+        } catch (SQLException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+    // Eliminar categoría
+    public void eliminarCategoria(Scanner sc) throws SQLException {
+        selectDAO.obtenerNombresCategorias();
+
+        System.out.print("Introduce el nombre de la categoría a eliminar: ");
+        String nombreCategoria = sc.nextLine();
+
+        String sql = "DELETE FROM Categoria WHERE nombre = ?";
+        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+            ps.setString(1, nombreCategoria);
+
+            //Ejecutar la consulta y obtener el numero de filas afectadas
+            int filasAfectadas = ps.executeUpdate();
+
+            if (filasAfectadas > 0) {
+                System.out.println("Categoria " + nombreCategoria + " eliminado correctamente.");
+            } else {
+                System.out.println("No se encontró la categoria con el nombre " + nombreCategoria);
+            }
+        }
     }
 }
+
+
