@@ -1,4 +1,4 @@
-package org.example.Insercion;
+package org.example.dto;
 
 import javax.persistence.*;
 
