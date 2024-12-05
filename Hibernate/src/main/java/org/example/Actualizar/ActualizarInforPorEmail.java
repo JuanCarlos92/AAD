@@ -30,7 +30,7 @@ public class ActualizarInforPorEmail {
 
             // Verificar si el estudiante fue encontrado
             if (!estudiantes.isEmpty()) {
-                Estudiante estudiante = estudiantes.get(0); // Obtener el primer estudiante
+                Estudiante estudiante = estudiantes.getFirst(); // Obtener el primer estudiante
 
                 // Paso 3: Modificar el estudiante
                 estudiante.setNombre("Manuel");  // Cambiar el nombre
