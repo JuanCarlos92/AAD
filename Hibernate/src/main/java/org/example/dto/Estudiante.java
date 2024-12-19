@@ -17,10 +17,14 @@ public class Estudiante {
     @Column(name = "edad", nullable = false)
     private int edad;
 
+    @ManyToOne
+    @JoinColumn(name = "empresa_id")
+    private Empresa empresa;
+
     public Estudiante() {
     }
 
-    public Estudiante(String email, String apellido, String nombre, int edad) {
+    public Estudiante(String nombre, String apellido, String email, int edad) {
         this.email = email;
         this.apellido = apellido;
         this.nombre = nombre;
@@ -65,6 +69,12 @@ public class Estudiante {
 
     public void setEdad(int edad) {
         this.edad = edad;
+    }
+    public void setEmpresa(Empresa empresa){
+        this.empresa = empresa;
+    }
+    public Empresa getEmpresa(){
+        return empresa;
     }
 
     @Override
