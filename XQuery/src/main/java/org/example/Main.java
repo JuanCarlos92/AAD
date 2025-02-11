@@ -12,6 +12,7 @@ public class Main {
 
             System.out.println("Resultado de la consulta:");
             System.out.println(result);
+            System.out.println("Hola mundo");
 
             session.close();
         } catch (Exception e) {
